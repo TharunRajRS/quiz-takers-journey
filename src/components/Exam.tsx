@@ -1,13 +1,15 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { useExam } from '@/contexts/ExamContext';
-import { ChevronLeft, ChevronRight, CheckCircle } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { ChevronLeft, ChevronRight, CheckCircle, LogOut } from 'lucide-react';
 
 const Exam = () => {
+  const { user, signOut } = useAuth();
   const {
     userName,
     currentQuestion,
@@ -21,6 +23,17 @@ const Exam = () => {
   const navigate = useNavigate();
   const [selectedAnswer, setSelectedAnswer] = useState<number>(answers[currentQuestion]);
 
+  useEffect(() => {
+    if (!user) {
+      navigate('/');
+      return;
+    }
+  }, [user, navigate]);
+
+  useEffect(() => {
+    setSelectedAnswer(answers[currentQuestion]);
+  }, [currentQuestion, answers]);
+
   const handleAnswerSelect = (answerIndex: number) => {
     setSelectedAnswer(answerIndex);
     setAnswer(currentQuestion, answerIndex);
@@ -29,14 +42,12 @@ const Exam = () => {
   const handleNext = () => {
     if (currentQuestion < questions.length - 1) {
       setCurrentQuestion(currentQuestion + 1);
-      setSelectedAnswer(answers[currentQuestion + 1]);
     }
   };
 
   const handlePrevious = () => {
     if (currentQuestion > 0) {
       setCurrentQuestion(currentQuestion - 1);
-      setSelectedAnswer(answers[currentQuestion - 1]);
     }
   };
 
@@ -45,11 +56,15 @@ const Exam = () => {
     navigate('/results');
   };
 
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
+  };
+
   const progress = ((currentQuestion + 1) / questions.length) * 100;
   const answeredQuestions = answers.filter(answer => answer !== -1).length;
 
-  if (!userName) {
-    navigate('/');
+  if (!user) {
     return null;
   }
 
@@ -63,11 +78,22 @@ const Exam = () => {
               <h1 className="text-2xl font-bold text-gray-800">Python Exam</h1>
               <p className="text-gray-600">Welcome, {userName}!</p>
             </div>
-            <div className="text-right">
-              <p className="text-sm text-gray-500">Progress</p>
-              <p className="text-lg font-semibold text-purple-600">
-                {currentQuestion + 1} / {questions.length}
-              </p>
+            <div className="flex items-center space-x-4">
+              <div className="text-right">
+                <p className="text-sm text-gray-500">Progress</p>
+                <p className="text-lg font-semibold text-purple-600">
+                  {currentQuestion + 1} / {questions.length}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSignOut}
+                className="flex items-center space-x-1"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Sign Out</span>
+              </Button>
             </div>
           </div>
           <Progress value={progress} className="h-2" />

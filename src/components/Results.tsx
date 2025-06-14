@@ -1,14 +1,26 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useExam } from '@/contexts/ExamContext';
-import { Trophy, Award, Target, RotateCcw, CheckCircle, X } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { Trophy, Award, Target, RotateCcw, CheckCircle, X, LogOut } from 'lucide-react';
 
 const Results = () => {
-  const { userName, score, questions, answers, resetExam } = useExam();
+  const { user, signOut } = useAuth();
+  const { userName, score, questions, answers, resetExam, saveExamResult } = useExam();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!user) {
+      navigate('/');
+      return;
+    }
+    
+    // Save exam result when component mounts
+    saveExamResult();
+  }, [user, navigate, saveExamResult]);
 
   const percentage = (score / questions.length) * 100;
   
@@ -24,11 +36,15 @@ const Results = () => {
 
   const handleRetakeExam = () => {
     resetExam();
+    navigate('/exam');
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
     navigate('/');
   };
 
-  if (!userName) {
-    navigate('/');
+  if (!user) {
     return null;
   }
 
@@ -38,8 +54,20 @@ const Results = () => {
         {/* Results Header */}
         <Card className="mb-6 animate-fade-in">
           <CardHeader className="text-center">
-            <div className="mx-auto w-20 h-20 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center mb-4">
-              <Trophy className="w-10 h-10 text-white" />
+            <div className="flex justify-between items-start mb-4">
+              <div></div>
+              <div className="mx-auto w-20 h-20 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center">
+                <Trophy className="w-10 h-10 text-white" />
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSignOut}
+                className="flex items-center space-x-1"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Sign Out</span>
+              </Button>
             </div>
             <CardTitle className="text-3xl font-bold text-gray-800 mb-2">
               Exam Complete!

@@ -1,5 +1,7 @@
 
 import React, { createContext, useContext, useState, ReactNode } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Question {
   id: number;
@@ -19,6 +21,7 @@ interface ExamContextType {
   calculateScore: () => void;
   resetExam: () => void;
   questions: Question[];
+  saveExamResult: () => Promise<void>;
 }
 
 const questions: Question[] = [
@@ -87,6 +90,7 @@ const questions: Question[] = [
 const ExamContext = createContext<ExamContextType | undefined>(undefined);
 
 export const ExamProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
   const [userName, setUserName] = useState('');
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<number[]>(new Array(10).fill(-1));
@@ -108,16 +112,35 @@ export const ExamProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setScore(correctAnswers);
   };
 
+  const saveExamResult = async () => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase.from('exam_results').insert({
+        user_id: user.id,
+        user_name: userName || user.email?.split('@')[0] || 'User',
+        score,
+        total_questions: questions.length,
+        answers: answers
+      });
+
+      if (error) {
+        console.error('Error saving exam result:', error);
+      }
+    } catch (error) {
+      console.error('Error saving exam result:', error);
+    }
+  };
+
   const resetExam = () => {
     setCurrentQuestion(0);
     setAnswers(new Array(10).fill(-1));
     setScore(0);
-    setUserName('');
   };
 
   return (
     <ExamContext.Provider value={{
-      userName,
+      userName: userName || user?.email?.split('@')[0] || 'User',
       setUserName,
       currentQuestion,
       setCurrentQuestion,
@@ -126,7 +149,8 @@ export const ExamProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       score,
       calculateScore,
       resetExam,
-      questions
+      questions,
+      saveExamResult
     }}>
       {children}
     </ExamContext.Provider>
