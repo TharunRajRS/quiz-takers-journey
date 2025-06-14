@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -111,10 +112,27 @@ export const ExamProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const saveExamResult = async () => {
     try {
+      // Generate a consistent UUID for demo purposes based on username
+      const generateConsistentUUID = (input: string) => {
+        // Create a simple hash and format it as UUID
+        let hash = 0;
+        for (let i = 0; i < input.length; i++) {
+          const char = input.charCodeAt(i);
+          hash = ((hash << 5) - hash) + char;
+          hash = hash & hash; // Convert to 32-bit integer
+        }
+        
+        // Format as UUID v4 pattern
+        const hashStr = Math.abs(hash).toString(16).padStart(8, '0');
+        return `${hashStr.substring(0, 8)}-${hashStr.substring(0, 4)}-4${hashStr.substring(1, 4)}-8${hashStr.substring(0, 3)}-${hashStr.substring(0, 12).padEnd(12, '0')}`;
+      };
+
+      const demoUserId = generateConsistentUUID(userName || 'anonymous');
+
       const { error } = await supabase
         .from('exam_results')
         .insert({
-          user_id: 'demo-user', // Using demo user ID since we don't have real auth
+          user_id: demoUserId,
           user_name: userName,
           score: score,
           total_questions: questions.length,
