@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
-import { Mail, KeyRound, ArrowLeft } from 'lucide-react';
+import { Mail, KeyRound, ArrowLeft, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const Auth = () => {
@@ -34,12 +34,13 @@ const Auth = () => {
       setStep('otp');
       toast({
         title: "OTP Sent!",
-        description: "Check your email for the verification code.",
+        description: "Check your email (including spam folder) for the verification code.",
       });
     } catch (error: any) {
+      console.error('OTP send error:', error);
       toast({
-        title: "Error",
-        description: error.message || "Failed to send OTP. Please try again.",
+        title: "Error Sending OTP",
+        description: error.message || "Failed to send OTP. Please try again or check your email settings.",
         variant: "destructive",
       });
     } finally {
@@ -68,9 +69,10 @@ const Auth = () => {
         description: "You've been logged in successfully.",
       });
     } catch (error: any) {
+      console.error('OTP verification error:', error);
       toast({
-        title: "Error",
-        description: error.message || "Invalid OTP. Please try again.",
+        title: "Verification Failed",
+        description: error.message || "Invalid OTP. Please check the code and try again.",
         variant: "destructive",
       });
     } finally {
@@ -81,6 +83,35 @@ const Auth = () => {
   const handleBackToEmail = () => {
     setStep('email');
     setOtp('');
+  };
+
+  const handleResendOTP = async () => {
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email.trim(),
+        options: {
+          emailRedirectTo: `${window.location.origin}/`
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "OTP Resent!",
+        description: "A new verification code has been sent to your email.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to resend OTP.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -130,6 +161,20 @@ const Auth = () => {
               >
                 {loading ? 'Sending...' : 'Send Verification Code'}
               </Button>
+
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div className="flex items-start space-x-2">
+                  <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-yellow-800">
+                    <p className="font-medium mb-1">Not receiving emails?</p>
+                    <ul className="list-disc list-inside space-y-1 text-xs">
+                      <li>Check your spam/junk folder</li>
+                      <li>Make sure email confirmation is disabled in Supabase settings</li>
+                      <li>Verify your email address is correct</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
             </form>
           ) : (
             <form onSubmit={handleVerifyOTP} className="space-y-4">
@@ -157,23 +202,35 @@ const Auth = () => {
                 {loading ? 'Verifying...' : 'Verify & Sign In'}
               </Button>
               
-              <Button 
-                type="button"
-                variant="outline"
-                onClick={handleBackToEmail}
-                className="w-full"
-                disabled={loading}
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Email
-              </Button>
+              <div className="flex space-x-2">
+                <Button 
+                  type="button"
+                  variant="outline"
+                  onClick={handleBackToEmail}
+                  className="flex-1"
+                  disabled={loading}
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back
+                </Button>
+
+                <Button 
+                  type="button"
+                  variant="outline"
+                  onClick={handleResendOTP}
+                  className="flex-1"
+                  disabled={loading}
+                >
+                  Resend OTP
+                </Button>
+              </div>
             </form>
           )}
           
           <div className="text-center text-sm text-gray-500">
             {step === 'email' 
               ? 'You\'ll receive a 6-digit code to access the Python exam'
-              : 'Didn\'t receive the code? Check your spam folder or go back to resend'
+              : 'Check your email (including spam folder) for the verification code'
             }
           </div>
         </CardContent>
