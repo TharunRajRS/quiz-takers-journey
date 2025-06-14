@@ -4,23 +4,18 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useExam } from '@/contexts/ExamContext';
-import { useAuth } from '@/hooks/useAuth';
-import { Trophy, Award, Target, RotateCcw, CheckCircle, X, LogOut } from 'lucide-react';
+import { Trophy, Award, Target, RotateCcw, CheckCircle, X, Home } from 'lucide-react';
 
 const Results = () => {
-  const { user, signOut } = useAuth();
-  const { userName, score, questions, answers, resetExam, saveExamResult } = useExam();
+  const { userName, score, questions, answers, resetExam } = useExam();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!user) {
+    if (!userName) {
       navigate('/');
       return;
     }
-    
-    // Save exam result when component mounts
-    saveExamResult();
-  }, [user, navigate, saveExamResult]);
+  }, [userName, navigate]);
 
   const percentage = (score / questions.length) * 100;
   
@@ -39,12 +34,11 @@ const Results = () => {
     navigate('/exam');
   };
 
-  const handleSignOut = async () => {
-    await signOut();
+  const handleGoHome = () => {
     navigate('/');
   };
 
-  if (!user) {
+  if (!userName) {
     return null;
   }
 
@@ -62,11 +56,11 @@ const Results = () => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleSignOut}
+                onClick={handleGoHome}
                 className="flex items-center space-x-1"
               >
-                <LogOut className="w-4 h-4" />
-                <span>Sign Out</span>
+                <Home className="w-4 h-4" />
+                <span>Home</span>
               </Button>
             </div>
             <CardTitle className="text-3xl font-bold text-gray-800 mb-2">

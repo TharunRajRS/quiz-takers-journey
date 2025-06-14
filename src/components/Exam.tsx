@@ -5,11 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { useExam } from '@/contexts/ExamContext';
-import { useAuth } from '@/hooks/useAuth';
-import { ChevronLeft, ChevronRight, CheckCircle, LogOut } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CheckCircle, Home } from 'lucide-react';
 
 const Exam = () => {
-  const { user, signOut } = useAuth();
   const {
     userName,
     currentQuestion,
@@ -24,11 +22,11 @@ const Exam = () => {
   const [selectedAnswer, setSelectedAnswer] = useState<number>(answers[currentQuestion]);
 
   useEffect(() => {
-    if (!user) {
+    if (!userName) {
       navigate('/');
       return;
     }
-  }, [user, navigate]);
+  }, [userName, navigate]);
 
   useEffect(() => {
     setSelectedAnswer(answers[currentQuestion]);
@@ -56,15 +54,14 @@ const Exam = () => {
     navigate('/results');
   };
 
-  const handleSignOut = async () => {
-    await signOut();
+  const handleGoHome = () => {
     navigate('/');
   };
 
   const progress = ((currentQuestion + 1) / questions.length) * 100;
   const answeredQuestions = answers.filter(answer => answer !== -1).length;
 
-  if (!user) {
+  if (!userName) {
     return null;
   }
 
@@ -88,11 +85,11 @@ const Exam = () => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleSignOut}
+                onClick={handleGoHome}
                 className="flex items-center space-x-1"
               >
-                <LogOut className="w-4 h-4" />
-                <span>Sign Out</span>
+                <Home className="w-4 h-4" />
+                <span>Home</span>
               </Button>
             </div>
           </div>
