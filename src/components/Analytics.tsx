@@ -34,7 +34,13 @@ const Analytics = () => {
       if (error) {
         console.error('Error fetching exam results:', error);
       } else {
-        setExamResults(data || []);
+        // Transform the data to match our ExamResult interface
+        const transformedData = (data || []).map(result => ({
+          ...result,
+          answers: Array.isArray(result.answers) ? result.answers as number[] : [],
+          completed_at: result.completed_at || new Date().toISOString()
+        }));
+        setExamResults(transformedData);
       }
     } catch (error) {
       console.error('Error fetching exam results:', error);
