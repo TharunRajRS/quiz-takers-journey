@@ -4,10 +4,10 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useExam } from '@/contexts/ExamContext';
-import { Trophy, Award, Target, RotateCcw, CheckCircle, X, Home } from 'lucide-react';
+import { Trophy, Award, Target, RotateCcw, CheckCircle, X, Home, BarChart3 } from 'lucide-react';
 
 const Results = () => {
-  const { userName, score, questions, answers, resetExam } = useExam();
+  const { userName, score, questions, answers, resetExam, saveExamResult } = useExam();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -15,7 +15,10 @@ const Results = () => {
       navigate('/');
       return;
     }
-  }, [userName, navigate]);
+    
+    // Save exam result when component loads
+    saveExamResult();
+  }, [userName, navigate, saveExamResult]);
 
   const percentage = (score / questions.length) * 100;
   
@@ -38,6 +41,10 @@ const Results = () => {
     navigate('/');
   };
 
+  const handleViewAnalytics = () => {
+    navigate('/analytics');
+  };
+
   if (!userName) {
     return null;
   }
@@ -49,7 +56,15 @@ const Results = () => {
         <Card className="mb-6 animate-fade-in">
           <CardHeader className="text-center">
             <div className="flex justify-between items-start mb-4">
-              <div></div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleViewAnalytics}
+                className="flex items-center space-x-1"
+              >
+                <BarChart3 className="w-4 h-4" />
+                <span>Analytics</span>
+              </Button>
               <div className="mx-auto w-20 h-20 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center">
                 <Trophy className="w-10 h-10 text-white" />
               </div>

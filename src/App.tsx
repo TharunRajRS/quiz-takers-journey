@@ -8,6 +8,7 @@ import { ExamProvider } from "@/contexts/ExamContext";
 import SignIn from "@/components/SignIn";
 import Exam from "@/components/Exam";
 import Results from "@/components/Results";
+import Analytics from "@/components/Analytics";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,6 +24,7 @@ const App = () => (
             <Route path="/" element={<SignIn />} />
             <Route path="/exam" element={<Exam />} />
             <Route path="/results" element={<Results />} />
+            <Route path="/analytics" element={<Analytics />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </ExamProvider>

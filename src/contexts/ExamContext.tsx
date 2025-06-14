@@ -1,5 +1,5 @@
-
 import React, { createContext, useContext, useState, ReactNode } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Question {
   id: number;
@@ -19,6 +19,7 @@ interface ExamContextType {
   calculateScore: () => void;
   resetExam: () => void;
   questions: Question[];
+  saveExamResult: () => Promise<void>;
 }
 
 const questions: Question[] = [
@@ -108,6 +109,28 @@ export const ExamProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setScore(correctAnswers);
   };
 
+  const saveExamResult = async () => {
+    try {
+      const { error } = await supabase
+        .from('exam_results')
+        .insert({
+          user_id: 'demo-user', // Using demo user ID since we don't have real auth
+          user_name: userName,
+          score: score,
+          total_questions: questions.length,
+          answers: answers
+        });
+
+      if (error) {
+        console.error('Error saving exam result:', error);
+      } else {
+        console.log('Exam result saved successfully');
+      }
+    } catch (error) {
+      console.error('Error saving exam result:', error);
+    }
+  };
+
   const resetExam = () => {
     setCurrentQuestion(0);
     setAnswers(new Array(10).fill(-1));
@@ -125,7 +148,8 @@ export const ExamProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       score,
       calculateScore,
       resetExam,
-      questions
+      questions,
+      saveExamResult
     }}>
       {children}
     </ExamContext.Provider>
