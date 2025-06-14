@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
-import { Mail, KeyRound, ArrowLeft, AlertCircle } from 'lucide-react';
+import { Mail, KeyRound, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const Auth = () => {
@@ -161,20 +160,6 @@ const Auth = () => {
               >
                 {loading ? 'Sending...' : 'Send Verification Code'}
               </Button>
-
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <div className="flex items-start space-x-2">
-                  <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-                  <div className="text-sm text-yellow-800">
-                    <p className="font-medium mb-1">Not receiving emails?</p>
-                    <ul className="list-disc list-inside space-y-1 text-xs">
-                      <li>Check your spam/junk folder</li>
-                      <li>Make sure email confirmation is disabled in Supabase settings</li>
-                      <li>Verify your email address is correct</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
             </form>
           ) : (
             <form onSubmit={handleVerifyOTP} className="space-y-4">
