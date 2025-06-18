@@ -1,5 +1,7 @@
 
 import React, { createContext, useContext, useState, ReactNode } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 export interface Question {
   id: number;
@@ -8,16 +10,25 @@ export interface Question {
   correctAnswer: number;
 }
 
+interface User {
+  id: string;
+  name: string;
+}
+
 interface ExamContextType {
   questions: Question[];
   currentQuestionIndex: number;
   answers: number[];
   score: number;
   isCompleted: boolean;
+  user: User | null;
+  isAuthenticated: boolean;
+  authenticate: (username: string, userId: string) => void;
   startExam: () => void;
   answerQuestion: (answerIndex: number) => void;
   nextQuestion: () => void;
   resetExam: () => void;
+  saveResults: () => Promise<void>;
 }
 
 const ExamContext = createContext<ExamContextType | undefined>(undefined);
@@ -91,6 +102,14 @@ export const ExamProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [answers, setAnswers] = useState<number[]>([]);
   const [score, setScore] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { toast } = useToast();
+
+  const authenticate = (username: string, userId: string) => {
+    setUser({ id: userId, name: username });
+    setIsAuthenticated(true);
+  };
 
   const startExam = () => {
     setCurrentQuestionIndex(0);
@@ -121,6 +140,43 @@ export const ExamProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const saveResults = async () => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('exam_results')
+        .insert({
+          user_name: user.name,
+          user_id: user.id,
+          score,
+          total_questions: questions.length,
+          answers: answers,
+        });
+
+      if (error) {
+        console.error('Error saving results:', error);
+        toast({
+          title: "Error",
+          description: "Failed to save exam results",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: "Exam results saved successfully!",
+        });
+      }
+    } catch (error) {
+      console.error('Error saving results:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save exam results",
+        variant: "destructive",
+      });
+    }
+  };
+
   const resetExam = () => {
     setCurrentQuestionIndex(0);
     setAnswers([]);
@@ -135,10 +191,14 @@ export const ExamProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       answers,
       score,
       isCompleted,
+      user,
+      isAuthenticated,
+      authenticate,
       startExam,
       answerQuestion,
       nextQuestion,
-      resetExam
+      resetExam,
+      saveResults
     }}>
       {children}
     </ExamContext.Provider>
