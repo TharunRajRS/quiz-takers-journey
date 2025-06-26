@@ -31,17 +31,27 @@ const Results = () => {
 
   const saveResultToAnalytics = async () => {
     try {
-      const { error } = await supabase
+      console.log('Saving results to analytics:', {
+        user_name: userName,
+        score: score,
+        total_questions: questions.length,
+        answers: answers
+      });
+
+      const { data, error } = await supabase
         .from('exam_results')
         .insert({
           user_name: userName,
           score: score,
           total_questions: questions.length,
           answers: answers
-        });
+        })
+        .select();
 
       if (error) {
         console.error('Error saving results:', error);
+      } else {
+        console.log('Results saved successfully:', data);
       }
     } catch (error) {
       console.error('Error saving results:', error);

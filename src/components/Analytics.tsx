@@ -7,7 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
-import { TrendingUp, Users, Award, Calendar, ArrowLeft, Brain, Target, Clock } from 'lucide-react';
+import { TrendingUp, Users, Award, Calendar, ArrowLeft, Brain, Target, Clock, RefreshCw } from 'lucide-react';
 
 interface ExamResult {
   id: string;
@@ -25,22 +25,54 @@ const Analytics = () => {
 
   useEffect(() => {
     fetchResults();
+    
+    // Set up real-time subscription for new results
+    const channel = supabase
+      .channel('exam_results_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'exam_results'
+        },
+        () => {
+          console.log('New result added, refreshing data...');
+          fetchResults();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchResults = async () => {
     try {
+      console.log('Fetching exam results...');
       const { data, error } = await supabase
         .from('exam_results')
         .select('*')
         .order('completed_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching results:', error);
+        throw error;
+      }
+      
+      console.log('Fetched results:', data);
       setResults(data || []);
     } catch (error) {
       console.error('Error fetching results:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRefresh = () => {
+    setLoading(true);
+    fetchResults();
   };
 
   const stats = {
@@ -93,14 +125,24 @@ const Analytics = () => {
             </h1>
             <p className="text-gray-600 mt-2">Comprehensive exam performance insights</p>
           </div>
-          <Button
-            onClick={() => navigate('/')}
-            variant="outline"
-            className="group hover:scale-105 transition-all duration-300 border-purple-200 hover:border-purple-400 hover:bg-purple-50"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
-            Back to Home
-          </Button>
+          <div className="flex gap-4">
+            <Button
+              onClick={handleRefresh}
+              variant="outline"
+              className="group hover:scale-105 transition-all duration-300 border-green-200 hover:border-green-400 hover:bg-green-50"
+            >
+              <RefreshCw className="w-4 h-4 mr-2 group-hover:rotate-180 transition-transform duration-500" />
+              Refresh
+            </Button>
+            <Button
+              onClick={() => navigate('/')}
+              variant="outline"
+              className="group hover:scale-105 transition-all duration-300 border-purple-200 hover:border-purple-400 hover:bg-purple-50"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
+              Back to Home
+            </Button>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -200,47 +242,55 @@ const Analytics = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-gray-800">
               <Clock className="w-5 h-5 text-green-600" />
-              Recent Results
+              Recent Results ({results.length} total)
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {results.slice(0, 10).map((result, index) => (
-                <div
-                  key={result.id}
-                  className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-white rounded-lg border hover:shadow-md transition-all duration-300 hover:scale-[1.02]"
-                >
-                  <div className="flex items-center space-x-4">
-                    <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold">
-                      {result.user_name.charAt(0).toUpperCase()}
+            {results.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <Brain className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                <p className="text-lg">No exam results yet</p>
+                <p className="text-sm">Results will appear here after users complete exams</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {results.slice(0, 10).map((result, index) => (
+                  <div
+                    key={result.id}
+                    className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-white rounded-lg border hover:shadow-md transition-all duration-300 hover:scale-[1.02]"
+                  >
+                    <div className="flex items-center space-x-4">
+                      <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold">
+                        {result.user_name.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-900">{result.user_name}</p>
+                        <p className="text-sm text-gray-500">
+                          {new Date(result.completed_at).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-semibold text-gray-900">{result.user_name}</p>
-                      <p className="text-sm text-gray-500">
-                        {new Date(result.completed_at).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </p>
+                    <div className="flex items-center space-x-3">
+                      <Progress 
+                        value={(result.score / result.total_questions) * 100} 
+                        className="w-24 h-2"
+                      />
+                      <Badge 
+                        variant={result.score >= 8 ? 'default' : result.score >= 6 ? 'secondary' : 'destructive'}
+                        className="text-sm font-bold px-3 py-1"
+                      >
+                        {result.score}/{result.total_questions}
+                      </Badge>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-3">
-                    <Progress 
-                      value={(result.score / result.total_questions) * 100} 
-                      className="w-24 h-2"
-                    />
-                    <Badge 
-                      variant={result.score >= 8 ? 'default' : result.score >= 6 ? 'secondary' : 'destructive'}
-                      className="text-sm font-bold px-3 py-1"
-                    >
-                      {result.score}/{result.total_questions}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

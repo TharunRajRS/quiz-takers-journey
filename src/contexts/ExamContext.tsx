@@ -93,6 +93,7 @@ export const ExamProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [score, setScore] = useState(0);
 
   const setAnswer = (questionIndex: number, answerIndex: number) => {
+    console.log(`Setting answer for question ${questionIndex}: ${answerIndex}`);
     const newAnswers = [...answers];
     newAnswers[questionIndex] = answerIndex;
     setAnswers(newAnswers);
@@ -105,20 +106,31 @@ export const ExamProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         correctAnswers++;
       }
     });
+    console.log(`Calculated score: ${correctAnswers}/${questions.length}`);
     setScore(correctAnswers);
   };
 
   const resetExam = () => {
+    console.log('Resetting exam...');
     setCurrentQuestion(0);
     setAnswers(new Array(10).fill(-1));
     setScore(0);
-    setUserName('');
+    // Don't reset userName here - let it be set fresh when signing in
+  };
+
+  const handleSetUserName = (name: string) => {
+    console.log(`Setting new user: ${name}`);
+    // Reset exam state when new user signs in
+    setCurrentQuestion(0);
+    setAnswers(new Array(10).fill(-1));
+    setScore(0);
+    setUserName(name);
   };
 
   return (
     <ExamContext.Provider value={{
       userName,
-      setUserName,
+      setUserName: handleSetUserName,
       currentQuestion,
       setCurrentQuestion,
       answers,
