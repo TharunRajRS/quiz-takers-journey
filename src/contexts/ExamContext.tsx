@@ -1,43 +1,31 @@
 
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
 
-export interface Question {
+interface Question {
   id: number;
   question: string;
   options: string[];
   correctAnswer: number;
 }
 
-interface User {
-  id: string;
-  name: string;
-}
-
 interface ExamContextType {
-  questions: Question[];
-  currentQuestionIndex: number;
+  userName: string;
+  setUserName: (name: string) => void;
+  currentQuestion: number;
+  setCurrentQuestion: (index: number) => void;
   answers: number[];
+  setAnswer: (questionIndex: number, answerIndex: number) => void;
   score: number;
-  isCompleted: boolean;
-  user: User | null;
-  isAuthenticated: boolean;
-  authenticate: (username: string, userId: string) => void;
-  startExam: () => void;
-  answerQuestion: (answerIndex: number) => void;
-  nextQuestion: () => void;
+  calculateScore: () => void;
   resetExam: () => void;
-  saveResults: () => Promise<void>;
+  questions: Question[];
 }
 
-const ExamContext = createContext<ExamContextType | undefined>(undefined);
-
-const pythonQuestions: Question[] = [
+const questions: Question[] = [
   {
     id: 1,
-    question: "What is the output of print(2 ** 3)?",
-    options: ["6", "8", "9", "23"],
+    question: "What is the correct way to create a list in Python?",
+    options: ["list = {1, 2, 3}", "list = [1, 2, 3]", "list = (1, 2, 3)", "list = <1, 2, 3>"],
     correctAnswer: 1
   },
   {
@@ -48,170 +36,97 @@ const pythonQuestions: Question[] = [
   },
   {
     id: 3,
-    question: "What does the len() function do?",
-    options: ["Returns the length of an object", "Creates a new list", "Sorts a list", "Removes an item"],
+    question: "What does the 'len()' function do?",
+    options: ["Returns the length of an object", "Creates a new variable", "Deletes an object", "Converts to string"],
     correctAnswer: 0
   },
   {
     id: 4,
-    question: "Which data type is mutable in Python?",
-    options: ["tuple", "string", "list", "int"],
-    correctAnswer: 2
+    question: "Which operator is used for exponentiation in Python?",
+    options: ["^", "**", "exp", "pow"],
+    correctAnswer: 1
   },
   {
     id: 5,
-    question: "What is the correct way to create a dictionary?",
-    options: ["{key: value}", "dict(key=value)", "{'key': 'value'}", "All of the above"],
-    correctAnswer: 3
+    question: "What is the output of print(2 + 3 * 4)?",
+    options: ["20", "14", "11", "9"],
+    correctAnswer: 1
   },
   {
     id: 6,
-    question: "Which operator is used for floor division in Python?",
-    options: ["/", "//", "%", "**"],
-    correctAnswer: 1
+    question: "Which of these is NOT a Python data type?",
+    options: ["int", "float", "string", "char"],
+    correctAnswer: 3
   },
   {
     id: 7,
-    question: "What does the range(5) function produce?",
-    options: ["[1, 2, 3, 4, 5]", "[0, 1, 2, 3, 4]", "[0, 1, 2, 3, 4, 5]", "5"],
-    correctAnswer: 1
+    question: "How do you create a comment in Python?",
+    options: ["// comment", "/* comment */", "# comment", "<!-- comment -->"],
+    correctAnswer: 2
   },
   {
     id: 8,
-    question: "Which method is used to add an element to the end of a list?",
-    options: ["add()", "append()", "insert()", "extend()"],
+    question: "What is the correct way to import a module in Python?",
+    options: ["include module", "import module", "require module", "using module"],
     correctAnswer: 1
   },
   {
     id: 9,
-    question: "What is the output of bool(0)?",
-    options: ["True", "False", "0", "Error"],
+    question: "Which method is used to add an element to the end of a list?",
+    options: ["add()", "append()", "insert()", "push()"],
     correctAnswer: 1
   },
   {
     id: 10,
-    question: "Which keyword is used to handle exceptions in Python?",
-    options: ["catch", "except", "handle", "error"],
+    question: "What is the result of bool('')?",
+    options: ["True", "False", "None", "Error"],
     correctAnswer: 1
   }
 ];
 
+const ExamContext = createContext<ExamContextType | undefined>(undefined);
+
 export const ExamProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [questions] = useState<Question[]>(pythonQuestions);
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [answers, setAnswers] = useState<number[]>([]);
+  const [userName, setUserName] = useState('');
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [answers, setAnswers] = useState<number[]>(new Array(10).fill(-1));
   const [score, setScore] = useState(0);
-  const [isCompleted, setIsCompleted] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const { toast } = useToast();
 
-  const authenticate = (username: string, userId: string) => {
-    setUser({ id: userId, name: username });
-    setIsAuthenticated(true);
-  };
-
-  const startExam = () => {
-    console.log('Starting exam...');
-    setCurrentQuestionIndex(0);
-    setAnswers([]);
-    setScore(0);
-    setIsCompleted(false);
-  };
-
-  const answerQuestion = (answerIndex: number) => {
-    console.log(`Answering question ${currentQuestionIndex} with answer ${answerIndex}`);
+  const setAnswer = (questionIndex: number, answerIndex: number) => {
     const newAnswers = [...answers];
-    newAnswers[currentQuestionIndex] = answerIndex;
+    newAnswers[questionIndex] = answerIndex;
     setAnswers(newAnswers);
   };
 
-  const nextQuestion = () => {
-    console.log(`Moving from question ${currentQuestionIndex}. Total questions: ${questions.length}`);
-    
-    if (currentQuestionIndex < questions.length - 1) {
-      console.log('Moving to next question...');
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
-    } else {
-      console.log('Exam completed, calculating final score...');
-      // Calculate final score using current answers array
-      let finalScore = 0;
-      answers.forEach((answer, index) => {
-        if (answer === questions[index].correctAnswer) {
-          finalScore++;
-        }
-      });
-      console.log(`Final score: ${finalScore}/${questions.length}`);
-      setScore(finalScore);
-      setIsCompleted(true);
-    }
-  };
-
-  const saveResults = async () => {
-    if (!user) {
-      console.log('No user found, cannot save results');
-      return;
-    }
-
-    console.log('Saving exam results...');
-    try {
-      const { error } = await supabase
-        .from('exam_results')
-        .insert({
-          user_name: user.name,
-          user_id: user.id,
-          score,
-          total_questions: questions.length,
-          answers: answers,
-        });
-
-      if (error) {
-        console.error('Error saving results:', error);
-        toast({
-          title: "Error",
-          description: "Failed to save exam results",
-          variant: "destructive",
-        });
-      } else {
-        console.log('Results saved successfully');
-        toast({
-          title: "Success",
-          description: "Exam results saved successfully!",
-        });
+  const calculateScore = () => {
+    let correctAnswers = 0;
+    questions.forEach((question, index) => {
+      if (answers[index] === question.correctAnswer) {
+        correctAnswers++;
       }
-    } catch (error) {
-      console.error('Error saving results:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save exam results",
-        variant: "destructive",
-      });
-    }
+    });
+    setScore(correctAnswers);
   };
 
   const resetExam = () => {
-    console.log('Resetting exam...');
-    setCurrentQuestionIndex(0);
-    setAnswers([]);
+    setCurrentQuestion(0);
+    setAnswers(new Array(10).fill(-1));
     setScore(0);
-    setIsCompleted(false);
+    setUserName('');
   };
 
   return (
     <ExamContext.Provider value={{
-      questions,
-      currentQuestionIndex,
+      userName,
+      setUserName,
+      currentQuestion,
+      setCurrentQuestion,
       answers,
+      setAnswer,
       score,
-      isCompleted,
-      user,
-      isAuthenticated,
-      authenticate,
-      startExam,
-      answerQuestion,
-      nextQuestion,
+      calculateScore,
       resetExam,
-      saveResults
+      questions
     }}>
       {children}
     </ExamContext.Provider>
