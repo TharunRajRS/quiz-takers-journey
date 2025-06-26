@@ -112,6 +112,7 @@ export const ExamProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const startExam = () => {
+    console.log('Starting exam...');
     setCurrentQuestionIndex(0);
     setAnswers([]);
     setScore(0);
@@ -119,30 +120,40 @@ export const ExamProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const answerQuestion = (answerIndex: number) => {
+    console.log(`Answering question ${currentQuestionIndex} with answer ${answerIndex}`);
     const newAnswers = [...answers];
     newAnswers[currentQuestionIndex] = answerIndex;
     setAnswers(newAnswers);
   };
 
   const nextQuestion = () => {
+    console.log(`Moving from question ${currentQuestionIndex}. Total questions: ${questions.length}`);
+    
     if (currentQuestionIndex < questions.length - 1) {
+      console.log('Moving to next question...');
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     } else {
-      // Calculate final score
+      console.log('Exam completed, calculating final score...');
+      // Calculate final score using current answers array
       let finalScore = 0;
       answers.forEach((answer, index) => {
         if (answer === questions[index].correctAnswer) {
           finalScore++;
         }
       });
+      console.log(`Final score: ${finalScore}/${questions.length}`);
       setScore(finalScore);
       setIsCompleted(true);
     }
   };
 
   const saveResults = async () => {
-    if (!user) return;
+    if (!user) {
+      console.log('No user found, cannot save results');
+      return;
+    }
 
+    console.log('Saving exam results...');
     try {
       const { error } = await supabase
         .from('exam_results')
@@ -162,6 +173,7 @@ export const ExamProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           variant: "destructive",
         });
       } else {
+        console.log('Results saved successfully');
         toast({
           title: "Success",
           description: "Exam results saved successfully!",
@@ -178,6 +190,7 @@ export const ExamProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const resetExam = () => {
+    console.log('Resetting exam...');
     setCurrentQuestionIndex(0);
     setAnswers([]);
     setScore(0);

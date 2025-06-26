@@ -22,6 +22,7 @@ const ExamComponent = () => {
   const [timeLeft, setTimeLeft] = useState(600); // 10 minutes
 
   useEffect(() => {
+    console.log('ExamComponent mounted, starting exam...');
     startExam();
   }, [startExam]);
 
@@ -29,7 +30,7 @@ const ExamComponent = () => {
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
-          // Time's up - navigate to results
+          console.log('Time is up, navigating to results');
           navigate('/results');
           return 0;
         }
@@ -41,21 +42,29 @@ const ExamComponent = () => {
   }, [navigate]);
 
   useEffect(() => {
+    console.log(`Question changed to index: ${currentQuestionIndex}`);
     setSelectedAnswer(null);
   }, [currentQuestionIndex]);
 
   const handleAnswerSelect = (answerIndex: number) => {
+    console.log(`Selected answer: ${answerIndex} for question ${currentQuestionIndex}`);
     setSelectedAnswer(answerIndex);
     answerQuestion(answerIndex);
   };
 
   const handleNext = () => {
     if (selectedAnswer !== null) {
+      console.log(`Processing next question. Current: ${currentQuestionIndex}, Total: ${questions.length}`);
+      
       if (currentQuestionIndex === questions.length - 1) {
-        // Last question - navigate to results
+        console.log('Last question completed, moving to results');
         nextQuestion();
-        navigate('/results');
+        // Small delay to ensure state is updated before navigation
+        setTimeout(() => {
+          navigate('/results');
+        }, 100);
       } else {
+        console.log('Moving to next question');
         nextQuestion();
       }
     }
@@ -71,8 +80,11 @@ const ExamComponent = () => {
   const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
 
   if (!currentQuestion) {
+    console.log('No current question found, showing loading...');
     return <div>Loading...</div>;
   }
+
+  console.log(`Rendering question ${currentQuestionIndex + 1}: ${currentQuestion.question}`);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 relative overflow-hidden">
