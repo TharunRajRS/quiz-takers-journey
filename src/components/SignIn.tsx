@@ -1,16 +1,26 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useExam } from '@/contexts/ExamContext';
-import { BookOpen, Code, Trophy, BarChart3, Sparkles } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { BookOpen, Code, Trophy, BarChart3, Sparkles, LogOut } from 'lucide-react';
 
 const SignIn = () => {
   const [name, setName] = useState('');
   const { setUserName } = useExam();
+  const { user, signOut, loading } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // If user is authenticated, use their display name or email
+    if (user) {
+      const displayName = user.user_metadata?.full_name || user.email || 'Anonymous User';
+      setName(displayName);
+      setUserName(displayName);
+    }
+  }, [user, setUserName]);
 
   const handleSignIn = (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,6 +29,26 @@ const SignIn = () => {
       navigate('/exam');
     }
   };
+
+  const handleSignOut = async () => {
+    await signOut();
+    setName('');
+  };
+
+  const handleAuthRedirect = () => {
+    navigate('/auth');
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-violet-50 via-purple-50 to-pink-50 flex items-center justify-center">
+        <div className="text-center">
+          <Sparkles className="w-8 h-8 animate-spin mx-auto mb-4 text-purple-600" />
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-violet-50 via-purple-50 to-pink-50 flex items-center justify-center p-4 relative overflow-hidden">
@@ -58,31 +88,93 @@ const SignIn = () => {
             ))}
           </div>
           
-          <form onSubmit={handleSignIn} className="space-y-6">
-            <div>
-              <label htmlFor="name" className="block text-sm font-semibold text-gray-700 mb-3">
-                Enter your name to begin
-              </label>
-              <Input
-                id="name"
-                type="text"
-                placeholder="Your full name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full h-12 border-2 border-purple-200 focus:border-purple-500 focus:ring-purple-500 rounded-xl transition-all duration-300 text-lg"
-                required
-              />
+          {user ? (
+            // Authenticated user view
+            <div className="space-y-6">
+              <div className="text-center p-4 bg-green-50 rounded-xl border border-green-200">
+                <p className="text-green-800 font-medium">
+                  Welcome back, {user.user_metadata?.full_name || user.email}!
+                </p>
+              </div>
+              
+              <form onSubmit={handleSignIn} className="space-y-6">
+                <div>
+                  <label htmlFor="name" className="block text-sm font-semibold text-gray-700 mb-3">
+                    Confirm your name for the exam
+                  </label>
+                  <Input
+                    id="name"
+                    type="text"
+                    placeholder="Your full name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full h-12 border-2 border-purple-200 focus:border-purple-500 focus:ring-purple-500 rounded-xl transition-all duration-300 text-lg"
+                    required
+                  />
+                </div>
+                
+                <Button 
+                  type="submit" 
+                  className="w-full h-12 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 hover:from-purple-700 hover:via-pink-700 hover:to-orange-700 transition-all duration-300 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transform"
+                  disabled={!name.trim()}
+                >
+                  <Sparkles className="w-5 h-5 mr-2" />
+                  Start Exam
+                </Button>
+              </form>
+
+              <Button
+                onClick={handleSignOut}
+                variant="outline"
+                className="w-full h-12 border-2 border-red-200 hover:border-red-400 hover:bg-red-50 rounded-xl transition-all duration-300 group text-red-600"
+              >
+                <LogOut className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
+                Sign Out
+              </Button>
             </div>
-            
-            <Button 
-              type="submit" 
-              className="w-full h-12 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 hover:from-purple-700 hover:via-pink-700 hover:to-orange-700 transition-all duration-300 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transform"
-              disabled={!name.trim()}
-            >
-              <Sparkles className="w-5 h-5 mr-2" />
-              Start Exam
-            </Button>
-          </form>
+          ) : (
+            // Non-authenticated user view
+            <div className="space-y-6">
+              <Button
+                onClick={handleAuthRedirect}
+                className="w-full h-12 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 hover:from-purple-700 hover:via-pink-700 hover:to-orange-700 transition-all duration-300 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transform"
+              >
+                <Sparkles className="w-5 h-5 mr-2" />
+                Sign In to Continue
+              </Button>
+              
+              <div className="text-center text-sm text-gray-500">
+                <hr className="mb-4" />
+                <p className="mb-4">Or continue as guest:</p>
+              </div>
+
+              <form onSubmit={handleSignIn} className="space-y-6">
+                <div>
+                  <label htmlFor="name" className="block text-sm font-semibold text-gray-700 mb-3">
+                    Enter your name to begin
+                  </label>
+                  <Input
+                    id="name"
+                    type="text"
+                    placeholder="Your full name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full h-12 border-2 border-purple-200 focus:border-purple-500 focus:ring-purple-500 rounded-xl transition-all duration-300 text-lg"
+                    required
+                  />
+                </div>
+                
+                <Button 
+                  type="submit" 
+                  variant="outline"
+                  className="w-full h-12 border-2 border-purple-200 hover:border-purple-400 hover:bg-purple-50 rounded-xl transition-all duration-300 text-lg font-semibold"
+                  disabled={!name.trim()}
+                >
+                  Continue as Guest
+                </Button>
+              </form>
+            </div>
+          )}
           
           <div className="flex gap-3">
             <Button
