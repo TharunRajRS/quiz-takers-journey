@@ -24,37 +24,41 @@ const Results = () => {
   const { grade, color, message } = getGrade();
 
   useEffect(() => {
-    if (userName && score >= 0) {
+    // Save results immediately when component mounts if we have valid data
+    if (userName && score >= 0 && !isNaN(score)) {
+      console.log('Results component mounted, saving analytics data...');
       saveResultToAnalytics();
     }
-  }, [userName, score]);
+  }, []); // Empty dependency array to run only once on mount
 
   const saveResultToAnalytics = async () => {
     try {
-      console.log('Saving results to analytics:', {
+      const resultData = {
         user_name: userName,
         score: score,
         total_questions: questions.length,
         answers: answers
-      });
+      };
+
+      console.log('Attempting to save results to analytics:', resultData);
 
       const { data, error } = await supabase
         .from('exam_results')
-        .insert({
-          user_name: userName,
-          score: score,
-          total_questions: questions.length,
-          answers: answers
-        })
+        .insert(resultData)
         .select();
 
       if (error) {
         console.error('Error saving results:', error);
+        // Try to save again after a short delay
+        setTimeout(() => {
+          console.log('Retrying to save results...');
+          saveResultToAnalytics();
+        }, 2000);
       } else {
         console.log('Results saved successfully:', data);
       }
     } catch (error) {
-      console.error('Error saving results:', error);
+      console.error('Error in saveResultToAnalytics:', error);
     }
   };
 

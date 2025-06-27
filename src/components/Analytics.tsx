@@ -24,6 +24,7 @@ const Analytics = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    console.log('Analytics component mounted, fetching results...');
     fetchResults();
     
     // Set up real-time subscription for new results
@@ -32,25 +33,31 @@ const Analytics = () => {
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
           schema: 'public',
           table: 'exam_results'
         },
-        () => {
-          console.log('New result added, refreshing data...');
+        (payload) => {
+          console.log('Real-time update received:', payload);
+          // Refresh data when any change occurs
           fetchResults();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Subscription status:', status);
+      });
 
     return () => {
+      console.log('Cleaning up subscription...');
       supabase.removeChannel(channel);
     };
   }, []);
 
   const fetchResults = async () => {
     try {
-      console.log('Fetching exam results...');
+      console.log('Fetching exam results from database...');
+      setLoading(true);
+      
       const { data, error } = await supabase
         .from('exam_results')
         .select('*')
@@ -61,19 +68,29 @@ const Analytics = () => {
         throw error;
       }
       
-      console.log('Fetched results:', data);
+      console.log('Successfully fetched results:', data?.length || 0, 'records');
       setResults(data || []);
     } catch (error) {
-      console.error('Error fetching results:', error);
+      console.error('Error in fetchResults:', error);
     } finally {
       setLoading(false);
     }
   };
 
   const handleRefresh = () => {
-    setLoading(true);
+    console.log('Manual refresh triggered');
     fetchResults();
   };
+
+  // Force refresh every 10 seconds to ensure data is up to date
+  useEffect(() => {
+    const interval = setInterval(() => {
+      console.log('Auto-refreshing analytics data...');
+      fetchResults();
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const stats = {
     totalExams: results.length,
@@ -171,7 +188,6 @@ const Analytics = () => {
 
         {/* Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* Score Distribution */}
           <Card className="animate-fade-in border-0 shadow-lg hover:shadow-xl transition-shadow">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-gray-800">
@@ -201,7 +217,6 @@ const Analytics = () => {
             </CardContent>
           </Card>
 
-          {/* Daily Performance */}
           <Card className="animate-fade-in border-0 shadow-lg hover:shadow-xl transition-shadow">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-gray-800">
